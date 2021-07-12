@@ -26,8 +26,8 @@ You must raise the function maximum timeout up to 300 seconds from the Hq dashbo
 import * as Bucket from "@spica-devkit/bucket";
 const fetch = require("node-fetch");
 
-export async function sender(req, res) {
-  const { unwanted_buckets, environments, server_name } = req.body;
+async function sender(sender_data) {
+  const { unwanted_buckets, environments, server_name } = sender_data;
   Bucket.initialize({ apikey: `${process.env.API_KEY}` });
   const HOST = req.headers.get("host");
   let spesificSchema = false;
@@ -85,7 +85,7 @@ export async function sender(req, res) {
           schemas: schemas,
           allFunctions: allFunctions,
           spesificSchema: spesificSchema,
-          env: !environments || environments == true ? true : false,
+          env: !environments || environments == "true" ? true : false,
         },
       }),
       headers: { "Content-Type": "application/json" },
@@ -152,4 +152,55 @@ async function getDependencies(id, HOST) {
         console.log("error : ", error);
       });
   });
+}
+
+export function senderDashboard() {
+  return {
+    title: "Sender Board",
+    description:
+      "Please fill the according form to complete operation. Don't forget to upload Clone-Receiver Side to destination server.",
+    inputs: [
+      {
+        key: "unwanted_buckets",
+        type: "string",
+        value: "",
+        title: "Unwanted Buckets",
+      },
+      {
+        key: "environments",
+        type: "boolean",
+        value: "",
+        title: "Environments",
+      },
+      {
+        key: "server_name",
+        type: "string",
+        value: "",
+        title: "Receiver Server Name",
+      },
+      {
+        key: "key",
+        type: "string",
+        value: "",
+        title: "Specific Key",
+      },
+    ],
+    button: {
+      color: "primary",
+      target:
+        "https://dvt-tst-2-886f5.hq.spicaengine.com/api/fn-execute/senderRequest",
+      method: "get",
+      title: "Send Request",
+    },
+  };
+}
+
+export async function senderRequest(req, res) {
+  let sender_data = {
+    ...req.query,
+  };
+  console.log("sender data: ", sender_data);
+  await sender(sender_data);
+
+  return `<!DOCTYPE html> <html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body><h2>Wait!</h2><p>This example does not really do anything, other than showing you how to wait.</p></body></html>`;
 }
