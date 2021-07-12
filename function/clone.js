@@ -27,7 +27,7 @@ import * as Bucket from "@spica-devkit/bucket";
 const fetch = require("node-fetch");
 
 export async function sender(req, res) {
-  const { unwanted_buckets, environments, server_name } = req.query;
+  const { unwanted_buckets, environments, server_name, key } = req.query;
   Bucket.initialize({ apikey: `${process.env.API_KEY}` });
   const HOST = req.headers.get("host");
   let spesificSchema = false;
@@ -86,6 +86,7 @@ export async function sender(req, res) {
           allFunctions: allFunctions,
           spesificSchema: spesificSchema,
           env: !environments || environments == "true" ? true : false,
+          key: key,
         },
       }),
       headers: { "Content-Type": "application/json" },
@@ -182,7 +183,7 @@ export function senderDashboard() {
         key: "key",
         type: "string",
         value: "",
-        title: "Specific Key",
+        title: "Secret Api Key Receiver Side",
       },
     ],
     button: {
