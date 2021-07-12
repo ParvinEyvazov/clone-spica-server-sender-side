@@ -26,8 +26,8 @@ You must raise the function maximum timeout up to 300 seconds from the Hq dashbo
 import * as Bucket from "@spica-devkit/bucket";
 const fetch = require("node-fetch");
 
-async function sender(sender_data) {
-  const { unwanted_buckets, environments, server_name } = sender_data;
+export async function sender(req, res) {
+  const { unwanted_buckets, environments, server_name } = req.query;
   Bucket.initialize({ apikey: `${process.env.API_KEY}` });
   const HOST = req.headers.get("host");
   let spesificSchema = false;
@@ -188,19 +188,9 @@ export function senderDashboard() {
     button: {
       color: "primary",
       target:
-        "https://dvt-tst-2-886f5.hq.spicaengine.com/api/fn-execute/senderRequest",
+        "https://dvt-tst-2-886f5.hq.spicaengine.com/api/fn-execute/sender",
       method: "get",
       title: "Send Request",
     },
   };
-}
-
-export async function senderRequest(req, res) {
-  let sender_data = {
-    ...req.query,
-  };
-  console.log("sender data: ", sender_data);
-  await sender(sender_data);
-
-  return `<!DOCTYPE html> <html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body><h2>Wait!</h2><p>This example does not really do anything, other than showing you how to wait.</p></body></html>`;
 }
