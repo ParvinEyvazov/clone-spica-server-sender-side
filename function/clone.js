@@ -12,8 +12,7 @@ The process of this asset works as follows: Suppose the main server is A and B's
                 server_name -> Required! Your functions, dependencies of functions and buckets schemas will send to B
                 (accepted : server_name for example "test-a1b2c")
 
-                unwanted_buckets -> if it is empty or  '*' then  your all buckets will send to B
-                (accepted : * , with commas next to bucket id for example "bucket_id,bucket_id" or emtpy)
+                bucket_names -> select the buckets that you want to clone
 
                 environments -> if it is empty or  'true' then  your functions will send with environments to B
                 (accepted : true , false or emtpy)
@@ -26,8 +25,16 @@ You must raise the function maximum timeout up to 300 seconds from the Hq dashbo
 import * as Bucket from "@spica-devkit/bucket";
 const fetch = require("node-fetch");
 
+const PUBLIC_URL = process.env.__INTERNAL__SPICA__PUBLIC_URL__;
+
 export async function sender(req, res) {
-  const { unwanted_buckets, environments, server_name, key } = req.query;
+  const { environments, server_name, key, bucket_names } = req.query;
+  let buckets_arr = bucket_names.split(",");
+
+  let wanted_buckets = getWantedBuckets([...buckets_arr]);
+
+  console.log(environments, server_name, key, wanted_buckets);
+
   Bucket.initialize({ apikey: `${process.env.API_KEY}` });
   const HOST = req.headers.get("host");
   let spesificSchema = false;
@@ -36,12 +43,12 @@ export async function sender(req, res) {
   let schemas = await Bucket.getAll().catch((error) =>
     console.log("get all buckets error :", error)
   );
-  if (unwanted_buckets && unwanted_buckets != "*") {
-    schemas = schemas.filter(
-      (schema) => JSON.stringify(unwanted_buckets).indexOf(schema._id) == -1
-    );
-    spesificSchema = true;
-  }
+
+  schemas = schemas.filter(
+    (schema) => JSON.stringify(wanted_buckets).indexOf(schema._id) > 0
+  );
+  spesificSchema = true;
+
   /////////--------------Get Schemas-----------------////////////
 
   /////////--------------Get Functions with dependencies and environments-----------------////////////
@@ -155,18 +162,27 @@ async function getDependencies(id, HOST) {
   });
 }
 
-export function senderDashboard() {
+export async function senderDashboard() {
+  Bucket.initialize({ apikey: `${process.env.API_KEY}` });
+
+  const [bucketIds] = await Bucket.getAll().then((buckets) =>
+    buckets.reduce(
+      (acc, curr) => {
+        acc[0].push(`${curr.title} ${curr._id}`);
+
+        return acc;
+      },
+      [[]]
+    )
+  );
+
+  console.log(bucketIds);
+
   return {
     title: "Sender Board",
     description:
       "Please fill the according form to complete operation. Don't forget to upload Clone-Receiver Side to destination server.",
     inputs: [
-      {
-        key: "unwanted_buckets",
-        type: "string",
-        value: "",
-        title: "Unwanted Buckets",
-      },
       {
         key: "environments",
         type: "boolean",
@@ -185,13 +201,41 @@ export function senderDashboard() {
         value: "",
         title: "Secret Api Key Receiver Side",
       },
+      {
+        key: "bucket_names",
+        type: "multiselect",
+        items: {
+          type: "string",
+          enum: Array.from(new Set(bucketIds)),
+        },
+        value: null,
+        title: "Buckets",
+      },
     ],
     button: {
       color: "primary",
-      target:
-        "https://dvt-tst-2-886f5.hq.spicaengine.com/api/fn-execute/sender",
+      target: `${PUBLIC_URL}/fn-execute/sender`,
       method: "get",
       title: "Send Request",
     },
   };
+}
+
+function getWantedBuckets(bucket_arr) {
+  let str = "";
+
+  for (let bucket of bucket_arr) {
+    str += idParser(bucket) + ",";
+  }
+
+  if (str.length > 0) {
+    str = str.slice(0, -1);
+  }
+
+  return str;
+}
+
+function idParser(str) {
+  var n = str.split(" ");
+  return n[n.length - 1];
 }
